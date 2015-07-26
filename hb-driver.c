@@ -21,7 +21,7 @@ void init_timer0(void)
 
     // Output Compare Register A
     OCR0A   =   127;
-    
+
     // Output Compare Register B
     OCR0B   =   127;
 
@@ -35,6 +35,7 @@ void init_timer0(void)
 
 
 //-------------------------------------------------------
+// The ADC is hardwired to read from ADC7
 void init_adc(void)
 {
     // ADC Multiplexer Selection Register
@@ -76,6 +77,7 @@ void init_adc(void)
 
 
 //-------------------------------------------------------
+// Prepare the chip
 void setup(void)
 {
 	init_timer0();
@@ -86,6 +88,7 @@ void setup(void)
 
 
 //-------------------------------------------------------
+// Main
 int main(void)
 {
 	setup();
@@ -103,6 +106,17 @@ int main(void)
 // ADC conversion complete.  ADLAR should be set
 ISR(ADC_vect)
 {
-	// just set OCR0A to the ADCH result.
-	OCR0A = ADCH;
+	static uint8_t data[4];
+
+	// save the diminishing average
+	data[3] = data[2] >> 2;
+	data[2] = data[1] >> 2;
+	data[1] = data[0] >> 2;
+	data[0] = ADCH;
+
+	// take the average of the data
+	int avg = (data[0] + data[1] + data[2] + data[3]) >> 4;
+
+	// set the current PWM value to the new average
+	OCR0A = avg & 0xFF;
 }
